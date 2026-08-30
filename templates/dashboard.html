@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Security Platform Dashboard</title>
+     <style>
+    body { 
+        background-color: #0b0e14; 
+        color: #e6edf3; 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+        margin: 0; 
+        padding: 24px; 
+    }
+    
+    .header { margin-bottom: 24px; }
+    .header h1 { color: #ffffff; font-size: 22px; margin: 0; font-weight: 600; }
+    .header p { color: #8b949e; font-size: 13px; margin: 4px 0 0 0; }
+    
+    .section-title { 
+        color: #f0f6fc; 
+        font-size: 15px; 
+        font-weight: 600; 
+        margin: 0 0 12px 0; 
+        letter-spacing: 0.2px; 
+    }
+    
+    .metrics-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .metric-card { 
+        background: #151b23; 
+        border: 1px solid #30363d; 
+        border-radius: 6px; 
+        padding: 16px; 
+    }
+    .metric-card h4 { margin: 0; color: #8b949e; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+    .metric-card .value { font-size: 28px; font-weight: 700; color: #ffffff; margin-top: 6px; }
+    .metric-card.critical { border-left: 4px solid #f85149; }
+    
+    .card { 
+        background: #151b23; 
+        border: 1px solid #30363d; 
+        border-radius: 6px; 
+        padding: 20px; 
+        margin-bottom: 24px; 
+    }
+    
+    .action-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
+    select, input[type="file"] { 
+        background: #0b0e14; 
+        border: 1px solid #30363d; 
+        color: #e6edf3; 
+        padding: 8px 12px; 
+        border-radius: 6px; 
+        font-size: 13px; 
+    }
+    
+    button { 
+        background: #238636; 
+        color: #ffffff; 
+        font-weight: 600; 
+        border: 1px solid rgba(240,246,252,0.1); 
+        padding: 8px 16px; 
+        border-radius: 6px; 
+        cursor: pointer; 
+        font-size: 13px; 
+    }
+    button:hover { background: #2ea043; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid #21262d; font-size: 13px; }
+    
+    /* Clean, highly readable slate table headers */
+    th { 
+        color: #8b949e; 
+        font-weight: 600; 
+        text-transform: uppercase; 
+        font-size: 11px; 
+        letter-spacing: 0.8px; 
+        background: #0b0e14; 
+    }
+    
+    code { 
+        font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace; 
+        color: #e6edf3; 
+        background: #21262d; 
+        padding: 2px 6px; 
+        border-radius: 4px; 
+        font-size: 12px; 
+    }
+    
+    pre { 
+        background: #0b0e14; 
+        border: 1px solid #21262d; 
+        padding: 10px; 
+        border-radius: 6px; 
+        color: #8b949e; 
+        margin: 0; 
+        white-space: pre-wrap; 
+        font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace; 
+        font-size: 12px; 
+        line-height: 1.4; 
+    }
+
+    /* Severity Colors */
+    .sev-CRITICAL { color: #f85149; font-weight: 700; }
+    .sev-HIGH { color: #ff7b72; font-weight: 700; }
+    .sev-MEDIUM { color: #d29922; font-weight: 700; }
+    .sev-LOW { color: #58a6ff; font-weight: 700; }
+</style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🛡 Security Scanner & Auto-Remediation</h1>
+        <p>Multi-Target Security & AI Automation Hub</p>
+    </div>
+
+    <!-- Metrics Header mapped to your views.py variables -->
+    <div class="section-title">Executive Security Metrics</div>
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <h4>Total Projects</h4>
+            <div class="value">{{ projects.count|default:3 }}</div>
+        </div>
+        <div class="metric-card">
+            <h4>Total Findings</h4>
+            <div class="value">{{ total_findings }}</div>
+        </div>
+        <div class="metric-card critical">
+            <h4>Critical Issues</h4>
+            <div class="value" style="color: #f85149;">{{ critical_findings }}</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="section-title">Detailed Assessment Report</div>
+        
+        <!-- Upload Form submitting to your scans/upload/ URL -->
+        <form method="POST" action="{% url 'upload_apk' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="action-bar">
+                <select name="scan_type">
+                    <option value="apk">Mobile APK Reverse Engineering</option>
+                </select>
+                <input type="file" name="apk_file" required />
+                <button type="submit">Execute AI Automated Scan</button>
+            </div>
+        </form>
+
+        <!-- Table looping over 'remediations' directly from your views.py -->
+        <table>
+            <thead>
+                <tr>
+                    <th>Severity</th>
+                    <th>Finding Title</th>
+                    <th>Affected Component</th>
+                    <th>Action Status</th>
+                    <th>AI Recommended Patch / Remediation</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for action in remediations %}
+                <tr>
+                    <td class="sev-{{ action.finding.severity }}">{{ action.finding.severity }}</td>
+                    <td style="font-weight: 600;">{{ action.finding.title }}</td>
+                    <td><code>{{ action.finding.affected_component }}</code></td>
+                    <td>
+                        <span style="color: #7ee787;">● {{ action.status }}</span>
+                    </td>
+                    <td>
+                        <pre>{{ action.patch_diff|default:"No patch generated yet." }}</pre>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #8b949e; padding: 24px;">
+                        No vulnerability findings recorded yet. Upload an APK to run a scan.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>
